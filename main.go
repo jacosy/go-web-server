@@ -7,6 +7,9 @@ import (
 
 func main() {
 	serveMux := http.NewServeMux()
+	// Serve static files from the root directory
+	serveMux.Handle("/", http.FileServer(http.Dir(".")))
+
 	server := http.Server{
 		Addr:    ":8080",
 		Handler: serveMux,
