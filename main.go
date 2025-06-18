@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -8,12 +9,25 @@ import (
 func main() {
 	serveMux := http.NewServeMux()
 	// Serve static files from the root directory
-	serveMux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
+	prefixHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
+	apiCfg := &apiConfig{}
+	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(prefixHandler))
 
 	serveMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
+	})
+
+	serveMux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "Hits: %d", apiCfg.GetMetrics())
+	})
+
+	serveMux.HandleFunc("/reset", func(w http.ResponseWriter, r *http.Request) {
+		apiCfg.ResetMetrics()
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hits reset to 0"))
 	})
 
 	server := http.Server{
