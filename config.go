@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync/atomic"
 )
@@ -16,10 +17,14 @@ func (c *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	})
 }
 
-func (c *apiConfig) GetMetrics() int32 {
-	return c.fileserverHits.Load()
+func (c *apiConfig) MetricsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Hits: %d", c.fileserverHits.Load())
 }
 
-func (c *apiConfig) ResetMetrics() {
+func (c *apiConfig) ResetMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	c.fileserverHits.Store(0)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Metrics reset"))
 }

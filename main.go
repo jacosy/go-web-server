@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -19,16 +18,8 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	serveMux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Hits: %d", apiCfg.GetMetrics())
-	})
-
-	serveMux.HandleFunc("/reset", func(w http.ResponseWriter, r *http.Request) {
-		apiCfg.ResetMetrics()
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hits reset to 0"))
-	})
+	serveMux.HandleFunc("/metrics", apiCfg.MetricsHandler)
+	serveMux.HandleFunc("/reset", apiCfg.ResetMetricsHandler)
 
 	server := http.Server{
 		Addr:    ":8080",
