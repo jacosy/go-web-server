@@ -12,14 +12,14 @@ func main() {
 	apiCfg := &apiConfig{}
 	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(prefixHandler))
 
-	serveMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	serveMux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
-	serveMux.HandleFunc("/metrics", apiCfg.MetricsHandler)
-	serveMux.HandleFunc("/reset", apiCfg.ResetMetricsHandler)
+	serveMux.HandleFunc("GET /metrics", apiCfg.MetricsHandler)
+	serveMux.HandleFunc("POST /reset", apiCfg.ResetMetricsHandler)
 
 	server := http.Server{
 		Addr:    ":8080",
