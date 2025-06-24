@@ -1,9 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/jacosy/go-web-server/handler"
 )
 
 func main() {
@@ -21,37 +22,9 @@ func main() {
 
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.MetricsHandler)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.ResetMetricsHandler)
-	serveMux.HandleFunc("POST /api/validate_chirp", func(w http.ResponseWriter, r *http.Request) {
-		type request struct {
-			Body string `json:"body"`
-		}
 
-		req := &request{}
-		decoder := json.NewDecoder(r.Body)
-		if err := decoder.Decode(req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-
-		if len(req.Body) > 140 {
-			http.Error(w, "Chirp body exceeds 140 characters", http.StatusBadRequest)
-			return
-		}
-
-		type response struct {
-			Valid bool `json:"valid"`
-		}
-
-		data, err := json.Marshal(response{Valid: true})
-		if err != nil {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(data)
-	})
+	chirpHandler := &handler.Chirp{}
+	serveMux.HandleFunc("POST /api/validate_chirp", chirpHandler.Validate)
 
 	server := http.Server{
 		Addr:    ":8080",
