@@ -23,7 +23,7 @@ func main() {
 	}
 
 	dbQueries := database.New(db)
-	apiCfg := &apiConfig{db: dbQueries}
+	apiCfg := &apiConfig{db: dbQueries, env: os.Getenv("PLATFORM")}
 
 	serveMux := http.NewServeMux()
 	// Serve static files from the root directory
@@ -38,7 +38,7 @@ func main() {
 
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.MetricsHandler)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.ResetMetricsHandler)
-	serveMux.HandleFunc("POST /api/user", apiCfg.CreateUser)
+	serveMux.HandleFunc("POST /api/users", apiCfg.CreateUser)
 
 	chirpHandler := &handler.Chirp{}
 	serveMux.HandleFunc("POST /api/validate_chirp", chirpHandler.Validate)

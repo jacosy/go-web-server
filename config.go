@@ -12,6 +12,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
+	env            string
 }
 
 func (c *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -33,9 +34,20 @@ func (c *apiConfig) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *apiConfig) ResetMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	if c.env != "dev" {
+		http.Error(w, "This endpoint is only available in development mode", http.StatusForbidden)
+		return
+	}
+
+	err := c.db.TruncateUsers(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to reset user data", http.StatusInternalServerError)
+		return
+	}
+
 	c.fileserverHits.Store(0)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Metrics reset"))
+	w.Write([]byte("Users and Metrics are reset successfully!"))
 }
 
 func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +67,13 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	data, err := json.Marshal(user)
+	respUser := User{
+		ID:        user.ID,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.Time,
+		UpdatedAt: user.UpdatedAt.Time,
+	}
+	data, err := json.Marshal(respUser)
 	if err != nil {
 		http.Error(w, "Failed to return user data", http.StatusInternalServerError)
 		return
