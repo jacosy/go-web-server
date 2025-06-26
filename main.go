@@ -1,17 +1,33 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq" // Import PostgreSQL driver
 
 	"github.com/jacosy/go-web-server/handler"
+	"github.com/jacosy/go-web-server/internal/database"
 )
 
 func main() {
+	// Load environment variables from .env file
+	godotenv.Load(".env")
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
+
+	dbQueries := database.New(db)
+	apiCfg := &apiConfig{dbQueries: dbQueries}
+
 	serveMux := http.NewServeMux()
 	// Serve static files from the root directory
 	prefixHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
-	apiCfg := &apiConfig{}
 	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(prefixHandler))
 
 	serveMux.HandleFunc("GET /admin/healthz", func(w http.ResponseWriter, r *http.Request) {
