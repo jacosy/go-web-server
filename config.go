@@ -39,7 +39,7 @@ func (c *apiConfig) ResetMetricsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err := c.db.TruncateUsers(r.Context())
+	err := c.db.Reset(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to reset user data", http.StatusInternalServerError)
 		return
