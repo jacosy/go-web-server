@@ -5,6 +5,9 @@ VALUES (
 )
 RETURNING id, username, email, created_at, updated_at;
 
+-- name: Reset :exec
+DELETE FROM users;
 
 -- name: TruncateUsers :exec
 TRUNCATE TABLE users RESTART IDENTITY;
+

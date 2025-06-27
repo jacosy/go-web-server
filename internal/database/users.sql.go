@@ -35,6 +35,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const reset = `-- name: Reset :exec
+DELETE FROM users
+`
+
+func (q *Queries) Reset(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, reset)
+	return err
+}
+
 const truncateUsers = `-- name: TruncateUsers :exec
 TRUNCATE TABLE users RESTART IDENTITY
 `
