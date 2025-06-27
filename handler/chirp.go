@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/jacosy/go-web-server/internal/database"
 )
 
-type Chirp struct{}
-
-type request struct {
-	Body string `json:"body"`
+type Chirp struct {
+	db *database.Queries
 }
 
-type response struct {
-	CleanedBody string `json:"cleaned_body"`
-	Valid       bool   `json:"valid"`
+func NewChirpHandler(db *database.Queries) *Chirp {
+	return &Chirp{db: db}
 }
 
 var profaneWords = map[string]struct{}{
@@ -23,8 +23,8 @@ var profaneWords = map[string]struct{}{
 	"fornax":    {},
 }
 
-func (c *Chirp) Validate(w http.ResponseWriter, r *http.Request) {
-	req := &request{}
+func (c *Chirp) CreateChirp(w http.ResponseWriter, r *http.Request) {
+	req := &ChirptRequestModel{}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -36,14 +36,30 @@ func (c *Chirp) Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(response{Valid: true, CleanedBody: getCleanedBody(req.Body)})
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	cleanedBody := getCleanedBody(req.Body)
+	chirp, dbErr := c.db.CreateChirp(r.Context(), database.CreateChirpParams{
+		UserID: userID,
+		Body:   cleanedBody,
+	})
+	if dbErr != nil {
+		http.Error(w, "Failed to create chirp", http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(convertChirpToResponseModel(chirp))
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	w.Write(data)
 }
 
@@ -55,4 +71,14 @@ func getCleanedBody(body string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+func convertChirpToResponseModel(chirp database.Chirp) ChirpResponseModel {
+	return ChirpResponseModel{
+		ID:        chirp.ID,
+		UserID:    chirp.UserID,
+		Body:      chirp.Body,
+		CreatedAt: chirp.CreatedAt.Time,
+		UpdatedAt: chirp.UpdatedAt.Time,
+	}
 }

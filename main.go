@@ -40,8 +40,8 @@ func main() {
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.ResetMetricsHandler)
 	serveMux.HandleFunc("POST /api/users", apiCfg.CreateUser)
 
-	chirpHandler := &handler.Chirp{}
-	serveMux.HandleFunc("POST /api/validate_chirp", chirpHandler.Validate)
+	chirpHandler := handler.NewChirpHandler(dbQueries)
+	serveMux.HandleFunc("POST /api/chirps", chirpHandler.CreateChirp)
 
 	server := http.Server{
 		Addr:    ":8080",
