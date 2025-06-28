@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -48,6 +51,7 @@ func (c *Chirp) CreateChirp(w http.ResponseWriter, r *http.Request) {
 		Body:   cleanedBody,
 	})
 	if dbErr != nil {
+		log.Println("Error creating chirp:", dbErr)
 		http.Error(w, "Failed to create chirp", http.StatusInternalServerError)
 		return
 	}
@@ -60,6 +64,66 @@ func (c *Chirp) CreateChirp(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	w.Write(data)
+}
+
+func (c *Chirp) GetChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := c.db.GetAllChirps(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve chirps", http.StatusInternalServerError)
+		return
+	}
+
+	var chirpResponses []ChirpResponseModel
+	for _, chirp := range chirps {
+		chirpResponses = append(chirpResponses, convertChirpToResponseModel(chirp))
+	}
+
+	data, err := json.Marshal(chirpResponses)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+func (c *Chirp) GetChirpByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id") // get the string value of the path parameter
+	if id == "" {
+		http.Error(w, "Chirp ID is required", http.StatusBadRequest)
+		return
+	}
+
+	chirpID, err := uuid.Parse(id)
+	if err != nil {
+		http.Error(w, "Invalid chirp ID", http.StatusBadRequest)
+		return
+	}
+
+	chirp, err := c.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Chirp not found", http.StatusNotFound)
+			return
+		}
+
+		log.Println("Error retrieving chirp:", err)
+		http.Error(w, "Failed to retrieve chirp", http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(convertChirpToResponseModel(chirp))
+	if err != nil {
+		log.Println("failed to JSON.Marshal a chirp instance:", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 

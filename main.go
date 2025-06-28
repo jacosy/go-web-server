@@ -42,6 +42,8 @@ func main() {
 
 	chirpHandler := handler.NewChirpHandler(dbQueries)
 	serveMux.HandleFunc("POST /api/chirps", chirpHandler.CreateChirp)
+	serveMux.HandleFunc("GET /api/chirps", chirpHandler.GetChirps)
+	serveMux.HandleFunc("GET /api/chirps/{id}", chirpHandler.GetChirpByID)
 
 	server := http.Server{
 		Addr:    ":8080",
