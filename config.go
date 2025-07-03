@@ -52,26 +52,26 @@ func (c *apiConfig) ResetMetricsHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var body map[string]string
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var createUserRequest UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&createUserRequest); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if body["username"] == "" || body["email"] == "" || body["password"] == "" {
+	if createUserRequest.Username == "" || createUserRequest.Password == "" || createUserRequest.Email == "" {
 		http.Error(w, "Invalid request body: username, email, and password are required", http.StatusBadRequest)
 		return
 	}
 
-	hashedPwd, err := auth.HashPassword(body["password"])
+	hashedPwd, err := auth.HashPassword(createUserRequest.Password)
 	if err != nil {
 		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
 		return
 	}
 
 	user, err := c.db.CreateUser(r.Context(), database.CreateUserParams{
-		Username:       body["username"],
-		Email:          body["email"],
+		Username:       createUserRequest.Username,
+		Email:          createUserRequest.Email,
 		HashedPassword: hashedPwd,
 	})
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	respUser := User{
+	respUser := UserResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt.Time,
@@ -93,4 +93,7 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Write(data)
+}
+
+func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
 }
