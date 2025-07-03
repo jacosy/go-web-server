@@ -8,6 +8,7 @@ import (
 
 	"github.com/jacosy/go-web-server/internal/auth"
 	"github.com/jacosy/go-web-server/internal/database"
+	"github.com/jacosy/go-web-server/internal/utils"
 )
 
 type apiConfig struct {
@@ -58,7 +59,7 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if createUserRequest.Username == "" || createUserRequest.Password == "" || createUserRequest.Email == "" {
+	if createUserRequest.Password == "" || createUserRequest.Email == "" {
 		http.Error(w, "Invalid request body: username, email, and password are required", http.StatusBadRequest)
 		return
 	}
@@ -79,20 +80,12 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	respUser := UserResponse{
+	utils.ResponseWithJSON(w, http.StatusCreated, UserResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt.Time,
 		UpdatedAt: user.UpdatedAt.Time,
-	}
-	data, err := json.Marshal(respUser)
-	if err != nil {
-		http.Error(w, "Failed to return user data", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
-	w.Write(data)
+	})
 }
 
 func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -118,17 +111,10 @@ func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := json.Marshal(UserResponse{
+	utils.ResponseWithJSON(w, http.StatusOK, UserResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt.Time,
 		UpdatedAt: user.UpdatedAt.Time,
 	})
-	if err != nil {
-		http.Error(w, "Failed to return user data", http.StatusInternalServerError)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(res)
 }
