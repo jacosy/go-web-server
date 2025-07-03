@@ -38,7 +38,9 @@ func main() {
 
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.MetricsHandler)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.ResetMetricsHandler)
+
 	serveMux.HandleFunc("POST /api/users", apiCfg.CreateUser)
+	serveMux.HandleFunc("POST /api/login", apiCfg.LoginUser)
 
 	chirpHandler := handler.NewChirpHandler(dbQueries)
 	serveMux.HandleFunc("POST /api/chirps", chirpHandler.CreateChirp)

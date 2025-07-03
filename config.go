@@ -96,4 +96,39 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
+	var loginRequest LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&loginRequest); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if loginRequest.Email == "" || loginRequest.Password == "" {
+		http.Error(w, "Email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	user, err := c.db.GetUserByEmail(r.Context(), loginRequest.Email)
+	if err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	if err = auth.CheckPasswordHash(loginRequest.Password, user.HashedPassword); err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	res, err := json.Marshal(UserResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.Time,
+		UpdatedAt: user.UpdatedAt.Time,
+	})
+	if err != nil {
+		http.Error(w, "Failed to return user data", http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(res)
 }
