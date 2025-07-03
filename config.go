@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/jacosy/go-web-server/internal/auth"
 	"github.com/jacosy/go-web-server/internal/database"
 )
 
@@ -57,9 +58,21 @@ func (c *apiConfig) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if body["username"] == "" || body["email"] == "" || body["password"] == "" {
+		http.Error(w, "Invalid request body: username, email, and password are required", http.StatusBadRequest)
+		return
+	}
+
+	hashedPwd, err := auth.HashPassword(body["password"])
+	if err != nil {
+		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+		return
+	}
+
 	user, err := c.db.CreateUser(r.Context(), database.CreateUserParams{
-		Username: body["username"],
-		Email:    body["email"],
+		Username:       body["username"],
+		Email:          body["email"],
+		HashedPassword: hashedPwd,
 	})
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
