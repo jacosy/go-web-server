@@ -47,6 +47,35 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, username, email, hashed_password, created_at, updated_at
+FROM users
+WHERE email = $1
+`
+
+type GetUserByEmailRow struct {
+	ID             uuid.UUID
+	Username       string
+	Email          string
+	HashedPassword string
+	CreatedAt      sql.NullTime
+	UpdatedAt      sql.NullTime
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.HashedPassword,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const reset = `-- name: Reset :exec
 DELETE FROM users
 `

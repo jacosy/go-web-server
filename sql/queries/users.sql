@@ -11,3 +11,7 @@ DELETE FROM users;
 -- name: TruncateUsers :exec
 TRUNCATE TABLE users RESTART IDENTITY;
 
+-- name: GetUserByEmail :one
+SELECT id, username, email, hashed_password, created_at, updated_at
+FROM users
+WHERE email = $1;
