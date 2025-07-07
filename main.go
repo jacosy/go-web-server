@@ -23,7 +23,12 @@ func main() {
 	}
 
 	dbQueries := database.New(db)
-	apiCfg := &apiConfig{db: dbQueries, env: os.Getenv("PLATFORM")}
+	secretKey := os.Getenv("SECRET_KEY")
+	apiCfg := &apiConfig{
+		db:        dbQueries,
+		env:       os.Getenv("PLATFORM"),
+		secretKey: secretKey,
+	}
 
 	serveMux := http.NewServeMux()
 	// Serve static files from the root directory
@@ -42,7 +47,7 @@ func main() {
 	serveMux.HandleFunc("POST /api/users", apiCfg.CreateUser)
 	serveMux.HandleFunc("POST /api/login", apiCfg.LoginUser)
 
-	chirpHandler := handler.NewChirpHandler(dbQueries)
+	chirpHandler := handler.NewChirpHandler(dbQueries, secretKey)
 	serveMux.HandleFunc("POST /api/chirps", chirpHandler.CreateChirp)
 	serveMux.HandleFunc("GET /api/chirps", chirpHandler.GetChirps)
 	serveMux.HandleFunc("GET /api/chirps/{id}", chirpHandler.GetChirpByID)
