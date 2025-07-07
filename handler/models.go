@@ -7,8 +7,7 @@ import (
 )
 
 type ChirptRequestModel struct {
-	UserID string `json:"user_id"`
-	Body   string `json:"body"`
+	Body string `json:"body"`
 }
 
 type ChirpResponseModel struct {
