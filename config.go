@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/jacosy/go-web-server/internal/auth"
 	"github.com/jacosy/go-web-server/internal/database"
@@ -15,6 +16,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	env            string
+	secretKey      string
 }
 
 func (c *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -111,10 +113,22 @@ func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defaultExpiresIn := 1 * time.Hour
+	reqExpiresIn := time.Duration(loginRequest.ExpiresInSeconds) * time.Second
+	if reqExpiresIn <= 0 || reqExpiresIn > defaultExpiresIn {
+		reqExpiresIn = defaultExpiresIn
+	}
+
+	jwtToken, err := auth.MakeJWT(user.ID, c.secretKey, reqExpiresIn)
+	if err != nil {
+		http.Error(w, "Failed to create JWT token", http.StatusInternalServerError)
+	}
+
 	utils.ResponseWithJSON(w, http.StatusOK, UserResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt.Time,
 		UpdatedAt: user.UpdatedAt.Time,
+		Token:     jwtToken,
 	})
 }
