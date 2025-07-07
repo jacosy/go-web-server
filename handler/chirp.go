@@ -9,15 +9,17 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jacosy/go-web-server/internal/auth"
 	"github.com/jacosy/go-web-server/internal/database"
 )
 
 type Chirp struct {
-	db *database.Queries
+	db        *database.Queries
+	secretKey string
 }
 
-func NewChirpHandler(db *database.Queries) *Chirp {
-	return &Chirp{db: db}
+func NewChirpHandler(db *database.Queries, secretKey string) *Chirp {
+	return &Chirp{db: db, secretKey: secretKey}
 }
 
 var profaneWords = map[string]struct{}{
@@ -27,21 +29,27 @@ var profaneWords = map[string]struct{}{
 }
 
 func (c *Chirp) CreateChirp(w http.ResponseWriter, r *http.Request) {
+	jwtToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(jwtToken, c.secretKey)
+	if err != nil {
+		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	req := &ChirptRequestModel{}
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(req); err != nil {
+	if err = decoder.Decode(req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if len(req.Body) > 140 {
 		http.Error(w, "Chirp body exceeds 140 characters", http.StatusBadRequest)
-		return
-	}
-
-	userID, err := uuid.Parse(req.UserID)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
