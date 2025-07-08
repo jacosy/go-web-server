@@ -113,13 +113,8 @@ func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defaultExpiresIn := 1 * time.Hour
-	reqExpiresIn := time.Duration(loginRequest.ExpiresInSeconds) * time.Second
-	if reqExpiresIn <= 0 || reqExpiresIn > defaultExpiresIn {
-		reqExpiresIn = defaultExpiresIn
-	}
-
-	jwtToken, err := auth.MakeJWT(user.ID, c.secretKey, reqExpiresIn)
+	expiresIn := 1 * time.Hour
+	jwtToken, err := auth.MakeJWT(user.ID, c.secretKey, expiresIn)
 	if err != nil {
 		http.Error(w, "Failed to create JWT token", http.StatusInternalServerError)
 	}
