@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync/atomic"
-	"time"
 
 	"github.com/jacosy/go-web-server/internal/auth"
 	"github.com/jacosy/go-web-server/internal/database"
@@ -113,17 +113,30 @@ func (c *apiConfig) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiresIn := 1 * time.Hour
-	jwtToken, err := auth.MakeJWT(user.ID, c.secretKey, expiresIn)
+	jwtToken, err := auth.MakeJWT(user.ID, c.secretKey)
 	if err != nil {
 		http.Error(w, "Failed to create JWT token", http.StatusInternalServerError)
+		return
+	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Print("Failed to create refresh token")
+	}
+
+	if err := c.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		UserID: user.ID,
+		Token:  refreshToken,
+	}); err != nil {
+		log.Printf("Failed to store refresh token: %v", err)
 	}
 
 	utils.ResponseWithJSON(w, http.StatusOK, UserResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt.Time,
-		UpdatedAt: user.UpdatedAt.Time,
-		Token:     jwtToken,
+		ID:           user.ID,
+		Email:        user.Email,
+		CreatedAt:    user.CreatedAt.Time,
+		UpdatedAt:    user.UpdatedAt.Time,
+		Token:        jwtToken,
+		RefreshToken: refreshToken,
 	})
 }
